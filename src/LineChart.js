@@ -32,35 +32,61 @@ export default function LineChart(props){
             console.log( d3Data(dateAndEvents,'date','amount') );
             const data =  d3Data(dateAndEvents,'date','amount');
 
-            const margin = {top:50, right:30, bottom: 50, left: 30};
+            
             const width  = parseInt(d3.select('#canvas').style('width'));
             const height = parseInt(d3.select('#canvas').style('height'));
             setSize({width, height})
+            
+            const margin = {top:20, right:200, bottom: 100, left: 100};
+            const graphWidth = width - margin.left - margin.right;
+            const graphHeight = height - margin.top - margin.bottom;
 
-         /*   
-             const data = [
-                {width: 200, height: 200, fill:'pink'},
-                {width: 100, height: 60, fill:'blue'},
-                {width: 50, height: 30, fill:'yellow'}
-                
-             ]*/
+
             //set up chart
             const canvas = d3.select(d3Chart.current);
             const svg    = canvas.append('svg')
                            .attr('height', size.height)
                            .attr('width', size.width )
-                           .style('background-color','grey');
-              
+                           .style('background-color','lightgrey');
+             
+              const graph = svg.append('g')
+                            .attr('width', graphWidth)
+                            .attr('height',graphHeight)
+                            .attr('transform', `translate(${margin.left},${margin.top})`);
+             
+             const xAxisGroup = graph.append('g')
+                                .attr('transform', `translate(0,${graphHeight})`);
+             const yAxisGroup = graph.append('g');
+
+              const min =  d3.min(data, d => d.amount);
+              const max =  d3.max(data, d => d.amount);
+              const extent =  d3.extent(data, d => d.amount);
+              //scaling
+              const y = d3.scaleLinear()
+                        .domain([0,max])
+                        .range([graphHeight,0]);
+              //band scale
+             const x = d3.scaleBand()
+                     .domain(data.map(item => item.date))
+                     .range([0,600])
+                     .paddingInner(0.1)
+                     .paddingOuter(0.1);
+
               //fetch rect as selectAll to have access to virtual place in enter() 
-                const rect = svg.selectAll('rect')
+                const rect = graph.selectAll('rect')
                 .data(data);
                 rect.enter().append('rect')
-                .attr('height', (d, i, n) => d.amount)
-                .attr('width', 20)
-                .attr('fill',  d =>'blue')
-                .attr('x', (_,i)=> i * 25)
-                .attr('y', 50)
+                .attr('height', (d, i, n) =>graphHeight - y(d.amount))
+                .attr('width', x.bandwidth)
+                .attr('fill',  d =>'grey')
+                .attr('x', d => x(d.date)) //instead of the hack => i * 20
+                .attr('y', d=> y(d.amount));
                
+               const xAxis = d3.axisBottom(x)
+               const yAxis = d3.axisLeft(y)
+               xAxisGroup.call(xAxis)
+               yAxisGroup.call(yAxis)
+
         })() 
     },[size.width])
 
